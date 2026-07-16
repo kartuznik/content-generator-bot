@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Users</h2>
+<table>
+    <thead>
+    <tr>
+        <th>User ID</th>
+        <th>Username</th>
+        <th>Name</th>
+        <th>Free Gen Left</th>
+        <th>Subscribed</th>
+        <th>Sub Expires</th>
+        <th>Text Gen</th>
+        <th>Image Gen</th>
+        <th>Manage</th>
+    </tr>
+    </thead>
+    <tbody>
+    {% for user in users %}
+        <tr>
+            <td>{{ user.user_id }}</td>
+            <td>{{ user.username or "-" }}</td>
+            <td>{{ user.first_name or "-" }}</td>
+            <td>{{ user.free_generations_left }}</td>
+            <td>{{ "Yes" if user.is_subscribed else "No" }}</td>
+            <td>{{ user.subscription_expires_at or "-" }}</td>
+            <td>{{ user.text_generations_count }}</td>
+            <td>{{ user.image_generations_count }}</td>
+            <td>
+                <form method="post" action="/users/add-generations">
+                    <input type="hidden" name="user_id" value="{{ user.user_id }}">
+                    <input type="number" name="amount" value="1" min="1" style="width:70px;">
+                    <button type="submit">+Gen</button>
+                </form>
+                <form method="post" action="/users/extend-subscription">
+                    <input type="hidden" name="user_id" value="{{ user.user_id }}">
+                    <input type="number" name="days" value="30" min="1" style="width:70px;">
+                    <button type="submit">+Sub</button>
+                </form>
+            </td>
+        </tr>
+    {% endfor %}
+    </tbody>
+</table>
+{% endblock %}
