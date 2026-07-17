@@ -19,16 +19,20 @@ class Settings:
     db_path: str = "data/content_generator.db"
     yookassa_return_url: str = "https://t.me"
 
+    @classmethod
+    def from_env(cls) -> "Settings":
+        return cls(
+            telegram_bot_token=os.getenv("TELEGRAM_BOT_TOKEN", ""),
+            yandex_iam_token=os.getenv("YANDEX_IAM_TOKEN", ""),
+            yandex_folder_id=os.getenv("YANDEX_FOLDER_ID", ""),
+            openai_api_key=os.getenv("OPENAI_API_KEY", ""),
+            yokassa_shop_id=os.getenv("YOKASSA_SHOP_ID", ""),
+            yokassa_secret_key=os.getenv("YOKASSA_SECRET_KEY", ""),
+            admin_web_password=os.getenv("ADMIN_WEB_PASSWORD", ""),
+            db_path=os.getenv("DB_PATH", "data/content_generator.db"),
+            yookassa_return_url=os.getenv("YOOKASSA_RETURN_URL", "https://t.me"),
+        )
+
 
 def load_settings() -> Settings:
-    return Settings(
-        telegram_bot_token=os.getenv("TELEGRAM_BOT_TOKEN", ""),
-        yandex_iam_token=os.getenv("YANDEX_IAM_TOKEN", ""),
-        yandex_folder_id=os.getenv("YANDEX_FOLDER_ID", ""),
-        openai_api_key=os.getenv("OPENAI_API_KEY", ""),
-        yokassa_shop_id=os.getenv("YOKASSA_SHOP_ID", ""),
-        yokassa_secret_key=os.getenv("YOKASSA_SECRET_KEY", ""),
-        admin_web_password=os.getenv("ADMIN_WEB_PASSWORD", ""),
-        db_path=os.getenv("DB_PATH", "data/content_generator.db"),
-        yookassa_return_url=os.getenv("YOOKASSA_RETURN_URL", "https://t.me"),
-    )
+    return Settings.from_env()

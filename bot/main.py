@@ -5,10 +5,12 @@ from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
 
-from bot.config import load_settings
+from bot.config import Settings
 from bot.database import init_db
 from bot.handlers.commands import router as commands_router
+from bot.handlers.image_gen import router as image_gen_router
 from bot.handlers.payment import router as payment_router
+from bot.handlers.text_gen import router as text_gen_router
 from bot.middlewares.ban_check import BanCheckMiddleware
 from bot.middlewares.usage_limit import UsageLimitMiddleware
 from bot.services.dalle_client import DALLEClient
@@ -18,7 +20,7 @@ from bot.services.yookassa_client import YooKassaClient
 
 async def main() -> None:
     logging.basicConfig(level=logging.INFO)
-    settings = load_settings()
+    settings = Settings.from_env()
     await init_db(settings.db_path)
 
     bot = Bot(
@@ -45,9 +47,13 @@ async def main() -> None:
 
     dp.message.middleware(BanCheckMiddleware(settings.db_path))
     dp.callback_query.middleware(BanCheckMiddleware(settings.db_path))
-    dp.message.middleware(UsageLimitMiddleware(settings.db_path))
+
+    text_gen_router.message.middleware(UsageLimitMiddleware(settings.db_path))
+    image_gen_router.message.middleware(UsageLimitMiddleware(settings.db_path))
 
     dp.include_router(commands_router)
+    dp.include_router(text_gen_router)
+    dp.include_router(image_gen_router)
     dp.include_router(payment_router)
 
     await dp.start_polling(bot)

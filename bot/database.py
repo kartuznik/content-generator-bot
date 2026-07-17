@@ -60,6 +60,21 @@ async def init_db(db_path: str) -> None:
             );
             """
         )
+        await db.execute(
+            """
+            CREATE TABLE IF NOT EXISTS generated_posts (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                generation_type TEXT NOT NULL,
+                prompt TEXT NOT NULL,
+                result TEXT,
+                generation_succeeded BOOLEAN DEFAULT FALSE,
+                error_message TEXT,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY(user_id) REFERENCES users(user_id)
+            );
+            """
+        )
         await db.commit()
 
 
@@ -291,5 +306,39 @@ async def save_or_update_payment(
                 updated_at = CURRENT_TIMESTAMP
             """,
             (payment_id, user_id, amount, status),
+        )
+        await db.commit()
+
+
+async def save_generated_post(
+    db_path: str,
+    user_id: int,
+    generation_type: str,
+    prompt: str,
+    result: str | None,
+    generation_succeeded: bool,
+    error_message: str | None = None,
+) -> None:
+    async with aiosqlite.connect(db_path) as db:
+        await db.execute(
+            """
+            INSERT INTO generated_posts (
+                user_id,
+                generation_type,
+                prompt,
+                result,
+                generation_succeeded,
+                error_message
+            )
+            VALUES (?, ?, ?, ?, ?, ?)
+            """,
+            (
+                user_id,
+                generation_type,
+                prompt,
+                result,
+                generation_succeeded,
+                error_message,
+            ),
         )
         await db.commit()

@@ -16,7 +16,11 @@ class YooKassaClient:
         self.db_path = db_path
 
     async def create_payment(
-        self, user_id: int, amount: float = 299.0, description: str = "Подписка на Content Generator"
+        self,
+        user_id: int,
+        amount: float = 299.0,
+        description: str = "Подписка на Content Generator",
+        subscription_days: int = 30,
     ) -> dict[str, str]:
         idempotence_key = str(uuid.uuid4())
         payment = Payment.create(
@@ -25,7 +29,10 @@ class YooKassaClient:
                 "confirmation": {"type": "redirect", "return_url": self.return_url},
                 "capture": True,
                 "description": description,
-                "metadata": {"user_id": str(user_id)},
+                "metadata": {
+                    "user_id": str(user_id),
+                    "subscription_days": str(subscription_days),
+                },
             },
             idempotence_key,
         )
@@ -51,11 +58,16 @@ class YooKassaClient:
         amount = float(payment_obj.get("amount", {}).get("value", 0))
 
         user_id_raw = metadata.get("user_id")
+        subscription_days = int(metadata.get("subscription_days", "30"))
         if payment_id and user_id_raw:
             user_id = int(user_id_raw)
             await save_or_update_payment(self.db_path, payment_id, user_id, amount, status)
             if event == "payment.succeeded" or status == "succeeded":
-                expires_at = await activate_subscription(self.db_path, user_id, days=30)
+                expires_at = await activate_subscription(
+                    self.db_path,
+                    user_id,
+                    days=subscription_days,
+                )
                 return {
                     "ok": True,
                     "message": "subscription_activated",
