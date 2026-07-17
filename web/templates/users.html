@@ -1,45 +1,44 @@
 {% extends "base.html" %}
 {% block content %}
-<h2>Users</h2>
-<table>
-    <thead>
-    <tr>
-        <th>User ID</th>
-        <th>Username</th>
-        <th>Name</th>
-        <th>Free Gen Left</th>
-        <th>Subscribed</th>
-        <th>Sub Expires</th>
-        <th>Text Gen</th>
-        <th>Image Gen</th>
-        <th>Manage</th>
-    </tr>
-    </thead>
-    <tbody>
-    {% for user in users %}
-        <tr>
-            <td>{{ user.user_id }}</td>
-            <td>{{ user.username or "-" }}</td>
-            <td>{{ user.first_name or "-" }}</td>
-            <td>{{ user.free_generations_left }}</td>
-            <td>{{ "Yes" if user.is_subscribed else "No" }}</td>
-            <td>{{ user.subscription_expires_at or "-" }}</td>
-            <td>{{ user.text_generations_count }}</td>
-            <td>{{ user.image_generations_count }}</td>
-            <td>
-                <form method="post" action="/users/add-generations">
-                    <input type="hidden" name="user_id" value="{{ user.user_id }}">
-                    <input type="number" name="amount" value="1" min="1" style="width:70px;">
-                    <button type="submit">+Gen</button>
-                </form>
-                <form method="post" action="/users/extend-subscription">
-                    <input type="hidden" name="user_id" value="{{ user.user_id }}">
-                    <input type="number" name="days" value="30" min="1" style="width:70px;">
-                    <button type="submit">+Sub</button>
-                </form>
-            </td>
-        </tr>
-    {% endfor %}
-    </tbody>
-</table>
+<h1 class="h3 mb-4">Users</h1>
+
+<div class="card shadow-sm">
+    <div class="table-responsive">
+        <table class="table table-striped table-hover mb-0">
+            <thead class="table-dark">
+            <tr>
+                <th>user_id</th>
+                <th>username</th>
+                <th>free_generations_left</th>
+                <th>is_subscribed</th>
+                <th>subscription_expires_at</th>
+                <th>actions</th>
+            </tr>
+            </thead>
+            <tbody>
+            {% for user in users %}
+                <tr>
+                    <td>{{ user.user_id }}</td>
+                    <td>{{ user.username or "-" }}</td>
+                    <td>{{ user.free_generations_left }}</td>
+                    <td>
+                        {% if user.is_subscribed %}
+                            <span class="badge bg-success">true</span>
+                        {% else %}
+                            <span class="badge bg-secondary">false</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ user.subscription_expires_at or "-" }}</td>
+                    <td>
+                        <form method="post" action="{{ url_for('users.topup_generations') }}">
+                            <input type="hidden" name="user_id" value="{{ user.user_id }}">
+                            <button type="submit" class="btn btn-sm btn-outline-primary">Добавить +5 генераций</button>
+                        </form>
+                    </td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
 {% endblock %}

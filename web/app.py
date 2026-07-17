@@ -1,31 +1,56 @@
 from __future__ import annotations
 
 import asyncio
+import os
 
-from flask import Flask, jsonify, render_template, request
+from flask import Flask, flash, jsonify, redirect, render_template, request, session, url_for
 
-from bot.config import load_settings
+from bot.config import Settings
 from bot.database import init_db
 from bot.handlers.payment import process_yookassa_webhook
 from bot.services.yookassa_client import YooKassaClient
+from web.auth import SESSION_AUTH_KEY, login_required, logout_user, mark_logged_in, verify_password
 from web.routes.dashboard import dashboard_bp
+from web.routes.generations import generations_bp
 from web.routes.users import users_bp
 
 
 def create_app() -> Flask:
-    settings = load_settings()
+    settings = Settings.from_env()
     asyncio.run(init_db(settings.db_path))
 
     app = Flask(__name__, template_folder="templates")
     app.config["DB_PATH"] = settings.db_path
     app.config["ADMIN_WEB_PASSWORD"] = settings.admin_web_password
+    app.secret_key = os.getenv("FLASK_SECRET_KEY", "change-me-in-production")
 
     app.register_blueprint(dashboard_bp)
     app.register_blueprint(users_bp)
+    app.register_blueprint(generations_bp)
 
     @app.get("/login")
-    def login_help():
+    def login():
+        if session.get(SESSION_AUTH_KEY):
+            return redirect(url_for("dashboard.index"))
         return render_template("login.html")
+
+    @app.post("/login")
+    def login_post():
+        password = request.form.get("password", "")
+        if verify_password(password):
+            mark_logged_in()
+            next_url = request.args.get("next")
+            if next_url and next_url.startswith("/"):
+                return redirect(next_url)
+            return redirect(url_for("dashboard.index"))
+        flash("Неверный пароль", "danger")
+        return render_template("login.html"), 401
+
+    @app.get("/logout")
+    @login_required
+    def logout():
+        logout_user()
+        return redirect(url_for("login"))
 
     @app.get("/health")
     def health_check():

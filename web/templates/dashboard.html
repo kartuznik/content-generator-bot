@@ -1,22 +1,30 @@
 {% extends "base.html" %}
 {% block content %}
-<h2>Dashboard</h2>
-<div class="stats">
-    <div class="card">
-        <h3>Пользователи</h3>
-        <p>{{ stats.users_count }}</p>
+<h1 class="h3 mb-4">Dashboard</h1>
+<div class="row g-3">
+    <div class="col-md-4">
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <div class="text-muted">Пользователи</div>
+                <div class="display-6">{{ stats.users_count }}</div>
+            </div>
+        </div>
     </div>
-    <div class="card">
-        <h3>Активные подписки</h3>
-        <p>{{ stats.active_subscriptions }}</p>
+    <div class="col-md-4">
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <div class="text-muted">Активные подписки</div>
+                <div class="display-6">{{ stats.active_subscriptions }}</div>
+            </div>
+        </div>
     </div>
-    <div class="card">
-        <h3>Всего генераций</h3>
-        <p>{{ stats.total_generations }}</p>
-    </div>
-    <div class="card">
-        <h3>Доход (RUB)</h3>
-        <p>{{ "%.2f"|format(stats.total_revenue) }}</p>
+    <div class="col-md-4">
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <div class="text-muted">Успешные генерации</div>
+                <div class="display-6">{{ stats.successful_generations }}</div>
+            </div>
+        </div>
     </div>
 </div>
 {% endblock %}
