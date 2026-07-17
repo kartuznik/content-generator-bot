@@ -1,24 +1,24 @@
-version: "3.9"
+version: "3.8"
 
 services:
   bot:
     build: .
-    container_name: content_generator_bot
-    command: python -m bot.main
+    container_name: content-generator-bot
+    restart: unless-stopped
     env_file:
       - .env
     volumes:
       - ./data:/app/data
-    restart: unless-stopped
+    command: python -m bot.main
 
   web:
     build: .
-    container_name: content_generator_web
-    command: flask --app web.app run --host=0.0.0.0 --port=5000
+    container_name: content-generator-web
+    restart: unless-stopped
     env_file:
       - .env
     ports:
-      - "5000:5000"
+      - "8005:5000"
     volumes:
       - ./data:/app/data
-    restart: unless-stopped
+    command: python -m web.app
