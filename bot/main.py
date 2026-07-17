@@ -13,8 +13,7 @@ from bot.handlers.payment import router as payment_router
 from bot.handlers.text_gen import router as text_gen_router
 from bot.middlewares.ban_check import BanCheckMiddleware
 from bot.middlewares.usage_limit import UsageLimitMiddleware
-from bot.services.dalle_client import DALLEClient
-from bot.services.yandex_gpt import YandexGPTClient
+from bot.services.openai_client import OpenAIClient
 from bot.services.yookassa_client import YooKassaClient
 
 
@@ -29,10 +28,7 @@ async def main() -> None:
     )
     dp = Dispatcher()
 
-    yandex_client = YandexGPTClient(
-        iam_token=settings.yandex_iam_token, folder_id=settings.yandex_folder_id
-    )
-    dalle_client = DALLEClient(api_key=settings.openai_api_key)
+    openai_client = OpenAIClient(api_key=settings.openai_api_key)
     yookassa_client = YooKassaClient(
         shop_id=settings.yokassa_shop_id,
         secret_key=settings.yokassa_secret_key,
@@ -41,8 +37,7 @@ async def main() -> None:
     )
 
     dp["settings"] = settings
-    dp["yandex_client"] = yandex_client
-    dp["dalle_client"] = dalle_client
+    dp["openai_client"] = openai_client
     dp["yookassa_client"] = yookassa_client
 
     dp.message.middleware(BanCheckMiddleware(settings.db_path))

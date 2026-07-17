@@ -9,7 +9,7 @@ from aiogram.types import BufferedInputFile, Message
 
 from bot.config import Settings
 from bot.database import ensure_user, increment_image_generation, save_generated_post
-from bot.services.dalle_client import DALLEClient
+from bot.services.openai_client import OpenAIClient
 
 
 router = Router(name="image_gen")
@@ -29,7 +29,7 @@ async def generate_image_handler(
     message: Message,
     command: CommandObject,
     settings: Settings,
-    dalle_client: DALLEClient,
+    openai_client: OpenAIClient,
     mark_generation_success: Callable[[], Awaitable[None]] | None = None,
 ) -> None:
     prompt = (command.args or "").strip()
@@ -46,7 +46,7 @@ async def generate_image_handler(
     await message.answer("Генерирую изображение через DALL-E 3...")
 
     try:
-        image_url = await dalle_client.generate_image(prompt)
+        image_url = await openai_client.generate_image(prompt)
         async with httpx.AsyncClient(timeout=60.0) as client:
             response = await client.get(image_url)
             response.raise_for_status()

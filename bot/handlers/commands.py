@@ -58,7 +58,7 @@ async def start_handler(message: Message, settings: Settings) -> None:
         (
             "Привет! Я Content Generator.\n\n"
             "Я умею генерировать:\n"
-            "- тексты через YandexGPT\n"
+            "- тексты через OpenAI GPT\n"
             "- изображения через DALL-E 3\n\n"
             "Команды:\n"
             "/generate <текст>\n"

@@ -1,7 +1,7 @@
 # Content Generator Bot
 
 Production-ready Telegram-бот для генерации контента:
-- текст — через **YandexGPT** (Yandex Cloud API),
+- текст — через **OpenAI GPT-4o-mini** (можно переключить на GPT-4),
 - изображения — через **OpenAI DALL-E 3**,
 - подписка/оплата — через **YooKassa**,
 - админка — **Flask**.
@@ -10,8 +10,8 @@ Production-ready Telegram-бот для генерации контента:
 
 - `aiogram 3` (polling)
 - `SQLite` (aiosqlite)
-- `Flask` (simple admin panel)
-- `YandexGPT` для текста
+- `Flask` (admin panel)
+- `OpenAI GPT` для текста
 - `OpenAI DALL-E 3` для изображений
 - `YooKassa` для подписки
 
@@ -31,22 +31,23 @@ Production-ready Telegram-бот для генерации контента:
    docker compose up --build -d
    ```
 4. Проверить:
-   - Flask admin: `http://localhost:5000`
-   - bot: polling в контейнере `bot`
+   - Flask admin: `http://localhost:8005`
+   - bot: polling в контейнере `content-generator-bot`
 
 ## Переменные окружения
 
 | Переменная | Назначение |
 | --- | --- |
 | `TELEGRAM_BOT_TOKEN` | Токен Telegram-бота от [@BotFather](https://t.me/BotFather). |
-| `YANDEX_IAM_TOKEN` | IAM-токен Yandex Cloud для доступа к YandexGPT. Получить можно через CLI (`yc iam create-token`) или сервисный аккаунт. |
-| `YANDEX_FOLDER_ID` | Folder ID вашего облачного каталога Yandex Cloud, где подключён Foundation Models API. |
-| `OPENAI_API_KEY` | API-ключ OpenAI, используется только для DALL-E 3. |
+| `OPENAI_API_KEY` | API-ключ OpenAI для текста и изображений. Получить: [platform.openai.com/api-keys](https://platform.openai.com/api-keys). |
+| `OPENAI_MODEL` | Модель для текстовой генерации (`gpt-4o-mini` по умолчанию или `gpt-4`). |
 | `YOKASSA_SHOP_ID` | ID магазина YooKassa. |
 | `YOKASSA_SECRET_KEY` | Секретный ключ YooKassa. |
 | `YOOKASSA_RETURN_URL` | URL возврата пользователя после оплаты. |
-| `ADMIN_WEB_PASSWORD` | Пароль для HTTP Basic Auth в админке (`admin:<password>`). |
+| `ADMIN_WEB_PASSWORD` | Пароль входа в веб-админку. |
+| `FLASK_SECRET_KEY` | Секрет Flask-сессий для веб-панели. |
 | `DB_PATH` | Путь к SQLite базе (по умолчанию `data/content_generator.db`). |
+| `LOG_LEVEL` | Уровень логирования приложения. |
 
 ## Команды бота
 
@@ -56,31 +57,15 @@ Production-ready Telegram-бот для генерации контента:
 - `/subscribe`
 - `/help`
 
-## Структура проекта
-
-```text
-content-generator-bot/
-├── bot/
-├── web/
-├── data/
-├── docker-compose.yml
-├── Dockerfile
-├── .env.example
-├── requirements.txt
-└── README.md
-```
-
 ## Web Admin
 
-- HTTP Basic Auth:
-  - login: `admin`
-  - password: значение `ADMIN_WEB_PASSWORD`
+- Вход: форма `/login` с паролем `ADMIN_WEB_PASSWORD`
 - Dashboard:
   - число пользователей,
   - активные подписки,
-  - общее число генераций,
-  - доход (успешные платежи).
+  - успешные генерации
 - Users:
   - просмотр лимитов и подписок,
-  - ручное добавление бесплатных генераций,
-  - продление подписки по дням.
+  - ручное добавление `+5` бесплатных генераций
+- Generations:
+  - последние 50 генераций из `generated_posts`

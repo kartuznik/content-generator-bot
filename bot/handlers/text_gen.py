@@ -9,7 +9,7 @@ from aiogram.types import Message
 
 from bot.config import Settings
 from bot.database import ensure_user, increment_text_generation, save_generated_post
-from bot.services.yandex_gpt import YandexGPTClient
+from bot.services.openai_client import OpenAIClient
 
 
 router = Router(name="text_gen")
@@ -35,7 +35,7 @@ async def _generate_text_and_respond(
     message: Message,
     prompt: str,
     settings: Settings,
-    yandex_client: YandexGPTClient,
+    openai_client: OpenAIClient,
     mark_generation_success: Callable[[], Awaitable[None]] | None,
 ) -> None:
     await ensure_user(
@@ -44,9 +44,12 @@ async def _generate_text_and_respond(
         username=message.from_user.username,
         first_name=message.from_user.first_name,
     )
-    await message.answer("Генерирую текст через YandexGPT...")
+    await message.answer(f"Генерирую текст через OpenAI ({settings.openai_model})...")
     try:
-        generated_text = await yandex_client.generate_text(prompt)
+        generated_text = await openai_client.generate_text(
+            prompt=prompt,
+            model=settings.openai_model,
+        )
     except Exception as exc:  # noqa: BLE001
         await save_generated_post(
             db_path=settings.db_path,
@@ -81,7 +84,7 @@ async def generate_command_handler(
     message: Message,
     command: CommandObject,
     settings: Settings,
-    yandex_client: YandexGPTClient,
+    openai_client: OpenAIClient,
     mark_generation_success: Callable[[], Awaitable[None]] | None = None,
 ) -> None:
     prompt = (command.args or "").strip()
@@ -93,7 +96,7 @@ async def generate_command_handler(
         message=message,
         prompt=prompt,
         settings=settings,
-        yandex_client=yandex_client,
+        openai_client=openai_client,
         mark_generation_success=mark_generation_success,
     )
 
@@ -102,7 +105,7 @@ async def generate_command_handler(
 async def generate_text_message_handler(
     message: Message,
     settings: Settings,
-    yandex_client: YandexGPTClient,
+    openai_client: OpenAIClient,
     mark_generation_success: Callable[[], Awaitable[None]] | None = None,
 ) -> None:
     prompt = (message.text or "").strip()
@@ -113,6 +116,6 @@ async def generate_text_message_handler(
         message=message,
         prompt=prompt,
         settings=settings,
-        yandex_client=yandex_client,
+        openai_client=openai_client,
         mark_generation_success=mark_generation_success,
     )

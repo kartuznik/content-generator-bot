@@ -1,5 +1,4 @@
-from bot.services.dalle_client import DALLEClient
-from bot.services.yandex_gpt import YandexGPTClient
+from bot.services.openai_client import OpenAIClient
 from bot.services.yookassa_client import YooKassaClient
 
-__all__ = ["YandexGPTClient", "DALLEClient", "YooKassaClient"]
+__all__ = ["OpenAIClient", "YooKassaClient"]

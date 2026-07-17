@@ -3,37 +3,34 @@ import os
 
 from dotenv import load_dotenv
 
-from bot.services.dalle_client import DALLEClient
-from bot.services.yandex_gpt import YandexGPTClient
+from bot.services.openai_client import OpenAIClient
 
 
 async def main() -> None:
     load_dotenv()
 
     print("🧪 Smoke-тест сервисов Content Generator Bot\n")
+    openai_client = OpenAIClient(api_key=os.getenv("OPENAI_API_KEY", "dummy_key"))
+    model = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
 
-    # 1. Тест YandexGPT
-    print("1️⃣ Тестируем YandexGPT...")
-    yandex_client = YandexGPTClient(
-        iam_token=os.getenv("YANDEX_IAM_TOKEN", "dummy_token"),
-        folder_id=os.getenv("YANDEX_FOLDER_ID", "dummy_folder"),
-    )
+    # 1. Тест генерации текста (OpenAI GPT)
+    print("1️⃣ Тестируем OpenAI GPT (text)...")
     try:
-        result = await yandex_client.generate_text(
-            "Напиши короткий пост про AI в 2 предложениях"
+        result = await openai_client.generate_text(
+            prompt="Напиши короткий пост про AI в 2 предложениях",
+            model=model,
         )
-        print(f"✅ YandexGPT ответ: {result[:100]}...")
+        print(f"✅ OpenAI GPT ответ: {result[:100]}...")
     except Exception as e:  # noqa: BLE001
         print(
-            "⚠️ YandexGPT ошибка (ожидаемо, если токены тестовые): "
+            "⚠️ OpenAI GPT ошибка (ожидаемо, если ключ тестовый): "
             f"{type(e).__name__}: {e}"
         )
 
     # 2. Тест DALL-E 3
-    print("\n2️⃣ Тестируем DALL-E 3...")
-    dalle_client = DALLEClient(api_key=os.getenv("OPENAI_API_KEY", "dummy_key"))
+    print("\n2️⃣ Тестируем OpenAI DALL-E 3 (image)...")
     try:
-        url = await dalle_client.generate_image("A cute robot coding in Python")
+        url = await openai_client.generate_image("A cute robot coding in Python")
         print(f"✅ DALL-E 3 URL: {url}")
     except Exception as e:  # noqa: BLE001
         print(
