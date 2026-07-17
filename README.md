@@ -1,9 +1,9 @@
 # Content Generator Bot
 
-[![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/)
-[![aiogram 3](https://img.shields.io/badge/aiogram-3.x-green.svg)](https://docs.aiogram.dev/)
-[![Docker](https://img.shields.io/badge/docker-ready-blue.svg)](https://www.docker.com/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](#-лицензия)
+[![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)]()
+[![aiogram 3.x](https://img.shields.io/badge/aiogram-3.x-green.svg)]()
+[![Docker ready](https://img.shields.io/badge/docker-ready-blue.svg)]()
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)]()
 
 **AI-бот для генерации контента в Telegram с подпиской через YooKassa**
 
