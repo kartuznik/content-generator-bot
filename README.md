@@ -1,54 +1,96 @@
 # Content Generator Bot
 
-[![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)]()
-[![aiogram 3.x](https://img.shields.io/badge/aiogram-3.x-green.svg)]()
-[![Docker ready](https://img.shields.io/badge/docker-ready-blue.svg)]()
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)]()
+[![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/)
+[![aiogram 3.x](https://img.shields.io/badge/aiogram-3.x-green.svg)](https://docs.aiogram.dev/)
+[![Docker](https://img.shields.io/badge/docker-compose-blue.svg)](https://docs.docker.com/compose/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-**AI-бот для генерации контента в Telegram с подпиской через YooKassa**
+**AI-бот для генерации текстов и изображений в Telegram с подпиской через YooKassa и Flask-админкой.**
+
+| Паспорт | |
+|---|---|
+| **Уровень** | Level 1 — Simple bot (команды + лимиты + платежи, без LangGraph) |
+| **Статус** | active |
+| **Ценность** | Self-hosted генерация контента с пробным лимитом, подпиской и веб-админкой |
+| **Актуализация README** | 2026-08-06 · см. [git history](https://github.com/kartuznik/content-generator-bot/commits/main) / сообщения коммитов |
+
+Операции (deploy, backup, ротация ключей, инциденты): [docs/RUNBOOK.md](docs/RUNBOOK.md).
+
+---
 
 ## О проекте
 
-**Content Generator Bot** — это production-ready Telegram-бот, который генерирует тексты и изображения через AI, монетизируется через подписку и управляется через веб-админку.
+**Content Generator Bot** — portfolio / self-hosted MVP: Telegram-бот генерирует тексты и изображения через OpenAI, ограничивает бесплатные попытки, предлагает подписку через YooKassa и отдаёт статистику во Flask-админке.
 
-**Ключевые преимущества:**
-- ✅ **AI-генерация** — GPT-4o-mini для текстов, DALL-E 3 для картинок
-- 💳 **Монетизация** — 3 бесплатные попытки, далее подписка через YooKassa
-- 📊 **Админка** — статистика, управление пользователями, ручное начисление генераций
-- 🐳 **Docker** — деплой одной командой
-- 🔒 **Безопасность** — система лимитов, ban-check middleware
+### Что умеет
 
-## ⚡ Quick Start
+- Генерация текста (`/generate`) через настраиваемую модель OpenAI (по умолчанию `gpt-4o-mini`).
+- Генерация изображений (`/generate_image`) через DALL-E 3.
+- Пробный лимит бесплатных генераций, далее оформление подписки командой `/subscribe`.
+- Веб-админка на порту **`:8005`**: dashboard, пользователи, история генераций, ручное начисление попыток.
+- Middleware лимитов и ban-check; Docker Compose с `restart: unless-stopped`.
 
-1. 📥 Клонируй репозиторий:
-   ```bash
-   git clone https://github.com/kartuznik/content-generator-bot.git
-   cd content-generator-bot
-   ```
-2. ⚙️ Подготовь переменные окружения:
-   ```bash
-   cp .env.example .env
-   ```
-3. 🚀 Запусти сервисы:
-   ```bash
-   docker compose up --build -d
-   ```
-4. ✅ Проверь:
-   - Веб-админка: `http://localhost:8005`
-   - Бот: polling в контейнере `content-generator-bot`
+### Чего не умеет (честный scope)
 
-## ✨ Возможности
+- Не multi-tenant SaaS и не enterprise IAM (SSO/SAML).
+- Нет multi-agent / LangGraph, нет RAG по базе знаний и нет встроенного веб-поиска.
+- Нет полноценного Prometheus/Grafana-стека «из коробки» (логи через `docker compose logs`).
+- Нет LLM-fallback на второго провайдера: при недоступности OpenAI генерация честно падает с сообщением пользователю.
+- Конкретные цены подписки и коммерческие офферы **не** живут в этом репозитории.
 
-- 🤖 **AI-генерация текстов** — GPT-4o-mini (быстро и дёшево) или GPT-4 (качественнее)
-- 🎨 **Генерация изображений** — DALL-E 3, высокое качество
-- 💳 **Подписка через YooKassa** — неделя (299₽) или месяц (799₽)
-- 🎁 **3 бесплатные генерации** — для тестирования
-- 📊 **Веб-админка** — статистика, управление пользователями, история генераций
-- 🔒 **Система лимитов** — автоматический контроль использования
-- 🐳 **Docker-деплой** — запуск одной командой
-- 📝 **Управление промптами** — через таблицу `prompts` (расширяемо под задачи проекта)
+### Коммерческая модель (без сумм)
 
-## 🏗 Архитектура
+1. Несколько **бесплатных пробных** генераций для знакомства с продуктом.
+2. Далее — **подписка** через YooKassa на период **неделя** или **месяц** (оформление в боте: `/subscribe`).
+3. Админ может вручную начислять генерации в веб-панели.
+
+Конкретные цены, акции и договорённости — **вне git** (презентации, листинги, чат с владельцем).
+
+### Поведение при сбоях (graceful degradation)
+
+- **OpenAI недоступен / ошибка API:** бот пишет пользователю честное сообщение об ошибке генерации, сохраняет факт неуспеха в БД, **не** списывает успешную генерацию; предлагает повторить позже.
+- **Лимит исчерпан:** middleware блокирует генерацию и направляет к `/subscribe` или к действию админа.
+- **Пользователь в ban-list:** запросы отклоняются middleware.
+- **Падение процесса:** сервисы `bot` и `web` в Compose с `restart: unless-stopped` поднимаются снова; детали — в [docs/RUNBOOK.md](docs/RUNBOOK.md).
+
+---
+
+## Быстрый старт
+
+```bash
+git clone https://github.com/kartuznik/content-generator-bot.git
+cd content-generator-bot
+cp .env.example .env   # заполните токены и ключи (имена — в таблице ниже)
+docker compose up --build -d
+docker compose logs -f bot
+```
+
+Проверка:
+
+- Веб-админка: `http://localhost:8005` (пароль из `ADMIN_WEB_PASSWORD` в вашем `.env`)
+- Бот: polling в контейнере `content-generator-bot`
+
+---
+
+## Возможности
+
+### Для клиента (Telegram)
+
+- `/start`, `/help`, `/status` — вход, справка, остаток генераций (если команда включена в текущем билде).
+- `/generate <текст>` — текст через OpenAI.
+- `/generate_image <описание>` — изображение через DALL-E 3.
+- `/subscribe` — оформление подписки (неделя / месяц) через YooKassa.
+
+### Для администратора (веб `:8005`)
+
+- Dashboard: пользователи, активные подписки, объём генераций.
+- Users: лимиты, ручное начисление генераций.
+- Generations: история последних генераций.
+- Вход: пароль из переменной `ADMIN_WEB_PASSWORD` (значение только в серверном `.env`).
+
+---
+
+## Архитектура
 
 ```mermaid
 flowchart LR
@@ -62,226 +104,174 @@ flowchart LR
     OpenAI --> DALLE[DALL-E 3]
 ```
 
-**Компоненты:**
-- **Bot** — Telegram polling, обработка команд
-- **OpenAI** — генерация текстов и изображений
-- **YooKassa** — приём платежей
-- **SQLite** — хранение пользователей, генераций, подписок
-- **Admin** — веб-интерфейс для управления
+**Компоненты:** Bot (polling) · OpenAI (текст/картинки) · YooKassa (платежи) · SQLite · Flask Admin.
 
-## 📱 Команды бота
+---
+
+## Демо
+
+Плейсхолдеры под скриншоты (файлы добавит владелец):
+
+| Плейсхолдер | Сценарий |
+|---|---|
+| `docs/demo/01-generate-text.png` | `/generate` — ответ бота с текстом |
+| `docs/demo/02-generate-image.png` | `/generate_image` — картинка в чате |
+| `docs/demo/03-subscribe.png` | `/subscribe` — выбор периода подписки |
+| `docs/demo/04-admin-dashboard.png` | Веб-админка: dashboard |
+| `docs/demo/05-admin-users.png` | Веб-админка: начисление генераций |
+
+Пока файлов нет — список сцен выше остаётся контрактом демо.
+
+Живой демо-бот: ссылка на `@…` добавляется владельцем после публикации (не хардкодить чужой username).
+
+---
+
+## Команды бота
 
 | Команда | Описание | Доступ |
 |---------|----------|--------|
-| `/start` | Приветствие и запуск | Все пользователи |
+| `/start` | Приветствие и запуск | Все |
 | `/generate <текст>` | Генерация текста через GPT | Все (с лимитом) |
 | `/generate_image <описание>` | Генерация изображения через DALL-E 3 | Все (с лимитом) |
 | `/subscribe` | Оформить подписку | Все |
 | `/help` | Справка по командам | Все |
-| `/status` | Проверить остаток генераций | Все (если команда включена в текущем билде) |
+| `/status` | Остаток генераций | Все (если включено в билде) |
 
-## 🔧 Переменные окружения
+---
 
-| Переменная | Обязательна | Описание | Пример |
-|------------|-------------|----------|--------|
-| `TELEGRAM_BOT_TOKEN` | ✅ | Токен бота от @BotFather | `123456:ABC...` |
-| `OPENAI_API_KEY` | ✅ | API ключ OpenAI | `sk-...` |
-| `OPENAI_MODEL` | ❌ | Модель для текста | `gpt-4o-mini` |
-| `YOKASSA_SHOP_ID` | ✅ | Shop ID ЮKassa | `123456` |
-| `YOKASSA_SECRET_KEY` | ✅ | Secret Key ЮKassa | `test_...` |
-| `YOOKASSA_RETURN_URL` | ✅ | URL возврата после оплаты | `https://t.me/bot` |
-| `ADMIN_WEB_PASSWORD` | ✅ | Пароль админки | `Admin123!` |
-| `FLASK_SECRET_KEY` | ✅ | Секрет Flask-сессий | `random-string` |
-| `DB_PATH` | ❌ | Путь к SQLite БД | `data/content_generator.db` |
-| `LOG_LEVEL` | ❌ | Уровень логирования | `INFO` |
+## Переменные окружения
 
-**Создай `.env` файл:**
+| Переменная | Обязательна | Назначение |
+|------------|-------------|------------|
+| `TELEGRAM_BOT_TOKEN` | да | Токен бота от @BotFather |
+| `OPENAI_API_KEY` | да | Ключ OpenAI (embeddings не используются) |
+| `OPENAI_MODEL` | нет | Модель текста (дефолт в `.env.example`) |
+| `YOKASSA_SHOP_ID` | да | Shop ID ЮKassa |
+| `YOKASSA_SECRET_KEY` | да | Secret Key ЮKassa |
+| `YOOKASSA_RETURN_URL` | да | URL возврата после оплаты (обычно `https://t.me/<bot>`) |
+| `ADMIN_WEB_PASSWORD` | да | Пароль входа в веб-админку |
+| `FLASK_SECRET_KEY` | да | Секрет Flask-сессий |
+| `DB_PATH` | нет | Путь к SQLite |
+| `LOG_LEVEL` | нет | Уровень логирования |
+
 ```bash
 cp .env.example .env
-nano .env  # заполни значения
+# заполните значения локально; не коммитьте .env
 ```
 
-## 📦 Установка
+---
 
-### Вариант 1: Docker (рекомендуется)
+## Установка и деплой
+
+### Docker Compose (рекомендуется)
 
 ```bash
-# 1. Клонируй репозиторий
 git clone https://github.com/kartuznik/content-generator-bot.git
 cd content-generator-bot
-
-# 2. Настрой переменные окружения
 cp .env.example .env
-nano .env  # заполни ключи
-
-# 3. Запусти
 docker compose up -d --build
-
-# 4. Проверь логи
 docker compose logs -f bot
 ```
 
-### Вариант 2: Локально (Python 3.12+)
+### Локально (Python 3.12+)
 
 ```bash
-# 1. Создай venv
 python3 -m venv venv
 source venv/bin/activate
-
-# 2. Установи зависимости
 pip install -r requirements.txt
-
-# 3. Настрой .env
 cp .env.example .env
-
-# 4. Запусти бота
-python -m bot.main
-
-# 5. Запусти админку (в другом терминале)
-python -m web.app
+python -m bot.main          # терминал 1
+python -m web.app           # терминал 2 — админка
 ```
 
-## 🚀 Деплой на сервер
+Подробный deploy, **backup/restore**, ротация ключей и инциденты — в [docs/RUNBOOK.md](docs/RUNBOOK.md).
 
-### Требования:
-- VPS с Ubuntu 22.04+
-- 2 ядра, 4 GB RAM
-- Docker + Docker Compose
+Кратко backup: остановить writers → скопировать `./data/*.db` → запустить снова (см. runbook).
 
-### Шаги:
+---
 
-1. **Подключись к серверу:**
-```bash
-ssh root@your-server-ip
-```
+## Мониторинг и админка
 
-2. **Установи Docker:**
-```bash
-curl -fsSL https://get.docker.com | sh
-```
+| Роль | Порт / доступ |
+|---|---|
+| Flask admin | `:8005` (compose: хост `8005` → контейнер `5000`) |
+| Логи bot/web | `docker compose logs -f bot` / `web` |
 
-3. **Запусти проект:**
-```bash
-git clone https://github.com/kartuznik/content-generator-bot.git
-cd content-generator-bot
-cp .env.example .env
-nano .env  # заполни ключи
-docker compose up -d
-```
+Вход в админку — пароль из `ADMIN_WEB_PASSWORD` вашего `.env`.
 
-4. **Настрой автозапуск:**
-```bash
-docker compose up -d --restart unless-stopped
-```
+---
 
-**Готово!** Бот и админка запущены, веб-панель доступна на порту `8005`.
+## Решение проблем
 
-## 📊 Мониторинг и админка
+| Симптом | Что проверить |
+|---------|----------------|
+| `401` / ошибка OpenAI | `OPENAI_API_KEY`, баланс провайдера |
+| `Connection refused` | `docker compose ps`, `docker compose up -d` |
+| Port already in use | занят `:8005` — сменить mapping в `docker-compose.yml` |
+| Нет бесплатных генераций | `/subscribe` или Users в админке |
+| `Database locked` | `docker compose restart bot` |
 
-### Веб-админка
+---
 
-**URL:** `http://your-server-ip:8005`
+## FAQ
 
-**Возможности:**
-- 📈 **Dashboard** — статистика пользователей, активных подписок, генераций
-- 👥 **Users** — управление лимитами, ручное начисление генераций (+5)
-- 📝 **Generations** — история последних 50 генераций
+**Q: Сколько стоит подписка?**  
+A: В репозитории сумм нет. В продукте — пробные генерации, затем подписка на **неделю** или **месяц**; актуальные условия — вне git у владельца.
 
-**Вход:** пароль из `ADMIN_WEB_PASSWORD`
+**Q: Это production-ready enterprise?**  
+A: Нет. Это **portfolio / self-hosted MVP**.
 
-### Логи
+**Q: Можно ли сменить модель текста?**  
+A: Да — `OPENAI_MODEL` в `.env`, затем recreate сервисов (`docker compose up -d --build`).
 
-```bash
-# Логи бота
-docker compose logs -f bot
+**Q: Как добавить генерации пользователю?**  
+A: Админка → Users → начисление генераций.
 
-# Логи админки
-docker compose logs -f web
+**Q: Работает ли без интернета / без OpenAI?**  
+A: Нет. Без OpenAI генерация недоступна; бот сообщает об ошибке и не притворяется, что контент создан.
 
-# Последние 50 строк
-docker compose logs --tail=50 bot
-```
+---
 
-## 🔧 Решение проблем
-
-| Проблема | Причина | Решение |
-|----------|---------|---------|
-| `401 Unauthorized` | Неверный API ключ | Проверь `OPENAI_API_KEY` в `.env` |
-| `Connection refused` | Бот не запущен | `docker compose up -d` |
-| `Port already in use` | Порт 8005 занят | Измени порт в `docker-compose.yml` |
-| `No free generations` | Лимит исчерпан | `/subscribe` или админка → +5 генераций |
-| `Database locked` | БД занята | Перезапусти бота: `docker compose restart bot` |
-
-### Частые ошибки
-
-**Ошибка:** `Error: TOKEN_INVALID`  
-**Решение:** Проверь токен бота в @BotFather
-
-**Ошибка:** `Error: CHAT_ID_NOT_FOUND`  
-**Решение:** Пользователь не запустил бота через `/start`
-
-## 👨‍💻 Разработка
-
-### Структура проекта
+## Структура репозитория
 
 ```text
 content-generator-bot/
-├── bot/               # Telegram бот
-│   ├── handlers/      # Хендлеры команд
-│   ├── services/      # OpenAI, YooKassa клиенты
-│   ├── middlewares/   # Middleware (лимиты, бан)
-│   └── main.py        # Точка входа
-├── web/               # Flask админка
-│   ├── routes/        # Роуты админки
-│   └── templates/     # HTML шаблоны
-├── data/              # SQLite база данных
+├── bot/                 # Telegram-бот (handlers, services, middlewares)
+├── web/                 # Flask-админка
+├── data/                # SQLite (volume)
+├── docs/                # RUNBOOK + demo placeholders
 ├── docker-compose.yml
+├── LICENSE
 └── .env.example
 ```
 
-### Тестирование
+### Smoke / локальный прогон
 
 ```bash
-# Smoke-тест
 python3 test_smoke.py
-
-# Запуск бота локально
-python -m bot.main
-
-# Запуск админки локально
-python -m web.app
 ```
 
-### Добавление новой команды
+---
 
-1. Создай файл `bot/handlers/new_command.py`
-2. Зарегистрируй роутер в `bot/main.py`
-3. Перезапусти бота
+## Лицензирование и коммерческое использование
 
-## ❓ FAQ
+Базовая лицензия репозитория — **MIT** (см. [LICENSE](LICENSE)): код можно изучать, форкать и запускать self-hosted.
 
-**Q: Сколько стоит генерация?**  
-A: 3 бесплатные попытки, далее подписка 299₽/неделя или 799₽/месяц.
+Коммерческие условия и редакции **Starter**, **Team** и **Custom** доступны **по запросу через контакт** (условия и коммерческие материалы — вне этого репозитория).
 
-**Q: Можно ли сменить модель?**  
-A: Да, измени `OPENAI_MODEL=gpt-4` в `.env` и перезапусти бота.
+| Редакция | Состав (ориентир) |
+|---|---|
+| **Community (MIT)** | Self-host бот + Flask admin, OpenAI-генерация, лимиты, YooKassa-подписка по периодам |
+| **Starter** | Community + сопровождение внедрения single-tenant demo |
+| **Team** | Starter + расширенные ops (runbook, усиленный мониторинг/алерты по договорённости) |
+| **Custom** | Индивидуальный scope: другие провайдеры LLM, биллинг, tenancy — обсуждается отдельно |
 
-**Q: Как добавить генерации пользователю?**  
-A: Админка → Users → найди пользователя → "Добавить +5 генераций".
+Конкретные цены и офферы живут **вне** git.
 
-**Q: Работает ли без интернета?**  
-A: Нет, требуется доступ к OpenAI API.
+## License
 
-## 📄 Лицензия
+MIT — см. [LICENSE](LICENSE).
 
-MIT License — используй как хочешь.
-
-## 👤 Авторы
+## Авторы
 
 - [kartuznik](https://github.com/kartuznik)
-
-## 🙏 Благодарности
-
-- [aiogram 3](https://docs.aiogram.dev/) — Telegram framework
-- [OpenAI](https://openai.com/) — GPT-4 и DALL-E 3 API
-- [YooKassa](https://yookassa.ru/) — платёжная система
