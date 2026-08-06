@@ -1,37 +1,37 @@
 # Content Generator Bot — Runbook
 
-Operational guide for self-hosted deployments. No secrets, hostnames, or public IPs are documented here — use your environment’s `.env` and Compose project.
+Операционное руководство для self-hosted деплоя. Секреты, hostname и публичные IP сюда не пишем — используйте `.env` и Compose-проект окружения.
 
 ## Deploy
 
-1. Clone the repository and create `.env` from `.env.example`.
-2. Required: `TELEGRAM_BOT_TOKEN`, `OPENAI_API_KEY`, `YOKASSA_SHOP_ID`, `YOKASSA_SECRET_KEY`, `YOOKASSA_RETURN_URL`, `ADMIN_WEB_PASSWORD`, `FLASK_SECRET_KEY`.
-3. Optional: `OPENAI_MODEL`, `DB_PATH`, `LOG_LEVEL`.
-4. Start:
+1. Клонируйте репозиторий и создайте `.env` из `.env.example`.
+2. Обязательно: `TELEGRAM_BOT_TOKEN`, `OPENAI_API_KEY`, `YOKASSA_SHOP_ID`, `YOKASSA_SECRET_KEY`, `YOOKASSA_RETURN_URL`, `ADMIN_WEB_PASSWORD`, `FLASK_SECRET_KEY`.
+3. Опционально: `OPENAI_MODEL`, `DB_PATH`, `LOG_LEVEL`.
+4. Запуск:
 
 ```bash
 docker compose up -d --build
 docker compose ps
 ```
 
-5. Verify:
-   - Bot polling logs are healthy (`docker compose logs --tail=100 bot`).
-   - Admin panel answers on the mapped host port **`:8005`** (password from `ADMIN_WEB_PASSWORD`).
+5. Проверка:
+   - Логи polling бота здоровы (`docker compose logs --tail=100 bot`).
+   - Admin panel отвечает на mapped host-порту **`:8005`** (пароль из `ADMIN_WEB_PASSWORD`).
 
-After documentation-only changes, no rebuild is required. After code changes that affect runtime, rebuild touched services:
+После docs-only изменений пересборка не нужна. После изменений кода, влияющих на runtime, пересоберите затронутые сервисы:
 
 ```bash
 docker compose up -d --build bot web
 ```
 
-## Backup and restore
+## Backup и restore
 
 ### SQLite
 
-- Default data dir: `./data` (container: `/app/data`).
-- Typical DB file: path from `DB_PATH` or project default under `data/`.
+- Каталог данных по умолчанию: `./data` (в контейнере: `/app/data`).
+- Файл БД: путь из `DB_PATH` или дефолт проекта в `data/`.
 
-Cold backup:
+Холодный backup:
 
 ```bash
 docker compose stop bot web
@@ -40,44 +40,44 @@ cp -a ./data ./backups/data-$(date +%Y%m%d)
 docker compose start bot web
 ```
 
-Restore: stop services → replace `./data` from backup → start services → smoke `/start` in Telegram and admin login.
+Restore: остановить сервисы → заменить `./data` из backup → запустить сервисы → smoke `/start` в Telegram и вход в админку.
 
-### Configuration
+### Конфигурация
 
-- Back up `.env` out-of-band (secrets manager / encrypted store). Never commit it.
-- Compose and app code are in git; restore by checking out the known revision and recreating containers.
+- `.env` храните вне git (secrets manager / шифрованное хранилище). Никогда не коммитьте.
+- Compose и код приложения в git; восстановление — checkout известной ревизии и recreate контейнеров.
 
-## API key / secret rotation
+## Ротация API-ключей и секретов
 
-Rotate one secret at a time; smoke after each recreate.
+Ротируйте один секрет за раз; после каждого recreate — smoke.
 
-| Secret | Steps |
+| Секрет | Шаги |
 |---|---|
-| `TELEGRAM_BOT_TOKEN` | New token in BotFather → update `.env` → `docker compose up -d --force-recreate bot` |
-| `OPENAI_API_KEY` | New key → update `.env` → recreate `bot` → revoke old key after smoke |
-| `YOKASSA_*` / `YOOKASSA_RETURN_URL` | Update shop credentials/return URL → recreate `bot` |
-| `ADMIN_WEB_PASSWORD` | Update `.env` → recreate `web` |
-| `FLASK_SECRET_KEY` | Update `.env` → recreate `web` (sessions reset) |
+| `TELEGRAM_BOT_TOKEN` | Новый токен в BotFather → обновить `.env` → `docker compose up -d --force-recreate bot` |
+| `OPENAI_API_KEY` | Новый ключ → обновить `.env` → recreate `bot` → отозвать старый ключ после smoke |
+| `YOKASSA_*` / `YOOKASSA_RETURN_URL` | Обновить credentials магазина / return URL → recreate `bot` |
+| `ADMIN_WEB_PASSWORD` | Обновить `.env` → recreate `web` |
+| `FLASK_SECRET_KEY` | Обновить `.env` → recreate `web` (сессии сбросятся) |
 
-After any manual `.env` edit: verify each changed line with `grep '^VAR=' .env` **before** recreate (see `/opt/standards/RULES.md` §4a).
+После любой ручной правки `.env`: проверить каждую изменённую строку через `grep '^VAR=' .env` **до** recreate (см. `/opt/standards/RULES.md` §4a).
 
-## Incident response
+## Инциденты
 
-### OpenAI errors / empty generations
+### Ошибки OpenAI / пустые генерации
 
-- Check bot logs and provider status/balance.
-- User already gets an honest failure message; successful counter is not incremented on exception.
-- Mitigate: fix key/model, retry later; no secondary LLM fallback in this product.
+- Смотрите логи бота и статус/баланс провайдера.
+- Пользователь уже получает честное сообщение об ошибке; счётчик успешных генераций при exception не увеличивается.
+- Mitigation: починить ключ/модель, повторить позже; вторичного LLM fallback в этом продукте нет.
 
-### Admin panel unreachable
+### Админка недоступна
 
-- `docker compose ps` / `logs web`; confirm host port `:8005` mapping.
-- Confirm `ADMIN_WEB_PASSWORD` in the running container env (without printing it to chat).
+- `docker compose ps` / `logs web`; проверьте mapping host-порта `:8005`.
+- Убедитесь, что `ADMIN_WEB_PASSWORD` есть в env запущенного контейнера (не печатать значение в чат).
 
-### Payment / subscribe issues
+### Платежи / `/subscribe`
 
-- Verify YooKassa credentials and return URL.
-- Check bot logs around `/subscribe`; do not paste secrets into tickets.
+- Проверьте credentials YooKassa и return URL.
+- Смотрите логи бота вокруг `/subscribe`; секреты в тикеты не вставлять.
 
 ## Rollback
 
@@ -87,4 +87,4 @@ git checkout <known-good-sha>
 docker compose up -d --build
 ```
 
-Restore `./data` from backup if the bad revision corrupted the DB.
+Восстановите `./data` из backup, если плохая ревизия повредила БД.
