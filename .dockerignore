@@ -1,0 +1,6 @@
+.env
+.env.bak
+.env.save
+*.db
+__pycache__/
+.git/
