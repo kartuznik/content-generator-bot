@@ -30,7 +30,3 @@ class Settings:
             db_path=os.getenv("DB_PATH", "data/content_generator.db"),
             yookassa_return_url=os.getenv("YOOKASSA_RETURN_URL", "https://t.me"),
         )
-
-
-def load_settings() -> Settings:
-    return Settings.from_env()

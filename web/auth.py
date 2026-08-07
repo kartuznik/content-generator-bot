@@ -3,7 +3,7 @@ from __future__ import annotations
 import hmac
 from functools import wraps
 
-from flask import current_app, redirect, request, session, url_for
+from flask import current_app, redirect, session, url_for
 
 
 SESSION_AUTH_KEY = "web_admin_authenticated"
@@ -31,7 +31,3 @@ def mark_logged_in() -> None:
 
 def logout_user() -> None:
     session.pop(SESSION_AUTH_KEY, None)
-
-
-def is_login_request() -> bool:
-    return request.path.startswith("/login")
